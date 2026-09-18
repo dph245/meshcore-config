@@ -17,17 +17,18 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
-import os
+import math
 import re
 import sys
+import tempfile
 import time
 from dataclasses import dataclass, asdict
 from pathlib import Path
-from typing import Optional, Iterable
+from typing import Optional, Iterable, Callable
 
 VERSION = "0.1.0"
 DEFAULT_BAUD = 115200
-DEFAULT_TIMEOUT = 2.0
+DEFAULT_TIMEOUT = 15.0
 DEFAULT_QUIET = 0.22
 FORMAT_NAME = "meshcore-config-backup"
 FORMAT_VERSION = 1
@@ -238,6 +239,9 @@ def canonical_value(key: str, value: str) -> str:
     v = value.strip()
     low = v.lower()
 
+    if key == "bridge.source":
+        return {"logrx": "rx", "logtx": "tx"}.get(low, v)
+
     if key == "dutycycle":
         return v.rstrip("%")
 
@@ -290,6 +294,35 @@ def restore_value(spec: SettingSpec, value: str) -> Optional[str]:
     return v
 
 
+class DeviceRestartError(RuntimeError):
+    """The device crashed or restarted during a serial operation."""
+
+
+class SerialSyncError(RuntimeError):
+    """Replies can no longer be safely assigned to commands."""
+
+
+def check_device_restart(raw: str, *, startup: bool = False) -> None:
+    panic = re.search(r"Guru Meditation Error|Core \s*\d+ register dump", raw)
+    if panic:
+        raise DeviceRestartError(
+            f"Firmware-Absturz erkannt ({panic.group(0)}); Vorgang abgebrochen."
+        )
+    banners = re.findall(r"^\s*(ESP-ROM:|rst:|Rebooting\.\.\.)", raw, re.MULTILINE)
+    if startup:
+        # ESP-ROM and rst can belong to the same boot. A repeated marker
+        # within this short startup window indicates another restart.
+        if any(banners.count(marker) > 1 for marker in set(banners)):
+            raise DeviceRestartError(
+                "Wiederholte Neustarts während der Startphase erkannt; Vorgang abgebrochen."
+            )
+    elif banners:
+        raise DeviceRestartError(
+            f"Firmware-Neustart während der Kommunikation erkannt ({banners[0]}); "
+            "Vorgang abgebrochen."
+        )
+
+
 class SerialCLI:
     def __init__(self, port: str, baud: int = DEFAULT_BAUD,
                  timeout: float = DEFAULT_TIMEOUT, quiet: float = DEFAULT_QUIET,
@@ -300,6 +333,9 @@ class SerialCLI:
         self.quiet = quiet
         self.verbose = verbose
         self.ser = None
+        self._echo_required = False
+        self._needs_sync = False
+        self.trace_callback = None
 
     def __enter__(self):
         try:
@@ -328,9 +364,15 @@ class SerialCLI:
         s.open()
         self.ser = s
 
-        # Allow any accidental open/reset banner to finish, then drain it.
-        time.sleep(0.45)
-        self._drain(0.35)
+        # Opening the port can produce normal boot messages. Give startup a
+        # bounded window before enforcing restart detection during commands.
+        try:
+            print("Warte auf Gerätestart (3 Sekunden) …", file=sys.stderr, flush=True)
+            self._wait_for_startup()
+        except BaseException:
+            s.close()
+            self.ser = None
+            raise
         return self
 
     def __exit__(self, exc_type, exc, tb):
@@ -340,24 +382,46 @@ class SerialCLI:
             except Exception:
                 pass
 
+    def _wait_for_startup(self, seconds: float = 3.0) -> None:
+        deadline = time.monotonic() + seconds
+        raw = ""
+        while time.monotonic() < deadline:
+            data = self.ser.read(self.ser.in_waiting or 1)
+            if data:
+                raw += data.decode("utf-8", "replace")
+                check_device_restart(normalize_text(raw), startup=True)
+
     def _drain(self, seconds: float) -> str:
-        end = time.monotonic() + seconds
+        # Async observer/debug output may never stop. Keep a hard deadline
+        # independent of the idle period so we still send the next command.
+        deadline = time.monotonic() + seconds
+        idle_deadline = deadline
         chunks = []
-        while time.monotonic() < end:
+        while time.monotonic() < min(deadline, idle_deadline):
             data = self.ser.read(self.ser.in_waiting or 1)
             if data:
                 chunks.append(data)
-                end = time.monotonic() + 0.08
-        return normalize_text(b"".join(chunks).decode("utf-8", "replace"))
+                idle_deadline = time.monotonic() + 0.08
+        raw = normalize_text(b"".join(chunks).decode("utf-8", "replace"))
+        check_device_restart(raw)
+        return raw
 
     def command(self, command: str, timeout: Optional[float] = None) -> str:
         if not self.ser:
             raise RuntimeError("serial port is not open")
 
-        # Flush older async debug text immediately before the command.
-        self._drain(0.08)
+        if self._needs_sync:
+            raise SerialSyncError(
+                "Vorherige Abfrage ohne zuordenbare Antwort; kein weiterer Befehl gesendet. "
+                "Erneut mit größerem --timeout versuchen."
+            )
 
-        payload = (command.rstrip("\r\n") + "\n").encode("utf-8")
+        # Flush older async debug text immediately before the command.
+        drained = self._drain(0.08)
+        if self.trace_callback:
+            self.trace_callback(command, "Vor dem Senden verworfen", drained)
+
+        payload = (command.rstrip("\r\n") + "\r").encode("utf-8")
         if self.verbose:
             print(f"  >> {command}", file=sys.stderr)
         self.ser.write(payload)
@@ -373,107 +437,92 @@ class SerialCLI:
                 chunks.append(data)
                 last_rx = time.monotonic()
             elif last_rx is not None and time.monotonic() - last_rx >= self.quiet:
-                break
+                # An echo or a debug line is not the command's response.
+                received = b"".join(chunks).decode("utf-8", "replace")
+                if self.reply_lines(self.response_text(received, command)):
+                    break
 
         raw = normalize_text(b"".join(chunks).decode("utf-8", "replace"))
+        if self.trace_callback:
+            self.trace_callback(command, "Empfangen", raw)
+        check_device_restart(raw, startup=(command == "reboot"))
+        response = self.response_text(raw, command)
+        if self._echo_required:
+            self._needs_sync = not (
+                self.reply_lines(response)
+                or (command == "get acl" and snapshot_has_reply("acl", response))
+            )
         if self.verbose:
             for line in raw.splitlines():
                 print(f"  << {line}", file=sys.stderr)
         return raw
 
+    def response_text(self, raw: str, command: str) -> str:
+        # Once this firmware has demonstrated command echoing, require each
+        # reply to follow its own echo. Late replies to earlier commands must
+        # not become values/errors for the next setting.
+        match = re.search(r"(?:^|[\r\n])" + re.escape(command) + r"\r", raw)
+        if match:
+            self._echo_required = True
+            return raw[match.end():]
+        return "" if self._echo_required else raw
+
     @staticmethod
     def lines(raw: str) -> list[str]:
         return [ln.strip("\r") for ln in raw.splitlines() if ln.strip("\r") != ""]
 
+    @staticmethod
+    def reply_lines(raw: str) -> list[str]:
+        """Only accept framed CLI replies, never arbitrary serial log text."""
+        replies = []
+        for line in normalize_text(raw).splitlines():
+            line = line.strip()
+            # The serial wrapper prefixes CommonCLI replies with '->'.
+            # Scalar getters add another '>', while ver/board return plain text.
+            if line.startswith("->"):
+                replies.append(line[2:].lstrip())
+            elif line.startswith(">"):
+                replies.append(line)
+        return replies
+
     def get_value(self, command: str) -> tuple[bool, str, str]:
-        """
-        Return (ok, value_or_error, raw).
-
-        Upstream CommonCLI formats get replies as '> value'. Gessaman builds use
-        the same command surface. We deliberately prefer that marker over any
-        asynchronous debug text.
-        """
         raw = self.command(command)
-        lines = self.lines(raw)
-
-        marked: list[str] = []
-        for ln in lines:
-            st = ln.strip()
-            if st.startswith("->"):
-                # Set-status style, not a get scalar.
+        check_device_restart(raw)
+        if self._needs_sync:
+            raise SerialSyncError(
+                f"Keine zuordenbare Antwort auf {command!r} innerhalb von {self.timeout:g} s; "
+                "Vorgang ohne weitere Befehle abgebrochen. "
+                "Erneut mit größerem --timeout versuchen."
+            )
+        replies = self.reply_lines(self.response_text(raw, command))
+        for reply in reversed(replies):
+            value = reply[1:].lstrip() if reply.startswith(">") else reply
+            if value == command:
                 continue
-            if st.startswith(">"):
-                candidate = st[1:].lstrip()
-                if candidate == command or candidate.endswith(command):
-                    continue
-                marked.append(candidate)
-
-        if marked:
-            # The reply can legitimately be empty.
-            value = marked[-1]
             if looks_error(value):
                 return False, value, raw
             return True, value, raw
-
-        # If an explicit error is present, return it.
-        for ln in reversed(lines):
-            if looks_error(ln):
-                return False, ln.strip(), raw
-
-        # Some extension commands return a plain scalar without the upstream '>'.
-        plausible = []
-        for ln in lines:
-            st = ln.strip()
-            if not st or st == command:
-                continue
-            if NOISE_RE.match(st):
-                continue
-            if st.startswith(": RX") or st.startswith(": TX"):
-                continue
-            plausible.append(st)
-
-        if plausible:
-            value = plausible[-1]
-            if looks_error(value):
-                return False, value, raw
-            return True, value, raw
-
         return False, "(no recognizable reply)", raw
 
     def set_value(self, command: str) -> tuple[bool, str, str]:
         raw = self.command(command)
-        lines = self.lines(raw)
-
-        # Upstream returns OK; serial wrappers sometimes show '-> OK'.
-        # Prefer an explicit OK over unrelated asynchronous debug chatter that
-        # happens to contain the word "error".
-        for ln in lines:
-            st = ln.strip()
-            if (
-                st == "OK"
-                or st.startswith("OK ")
-                or st.startswith("OK-")
-                or st.startswith("OK -")
-                or st.startswith("(OK")
-                or st.startswith("-> OK")
-                or st.lower().startswith("password now:")
-            ):
-                return True, st, raw
-
-        for ln in lines:
-            st = ln.strip()
-            if looks_error(st):
-                return False, st, raw
-
-        # Some firmwares emit a scalar/short confirmation. Treat it as success
-        # only when there is an actual non-noise reply.
-        plausible = [
-            ln.strip() for ln in lines
-            if ln.strip() and ln.strip() != command and not NOISE_RE.match(ln.strip())
-        ]
-        if plausible:
-            return True, plausible[-1], raw
-        return False, "(no confirmation reply)", raw
+        check_device_restart(raw)
+        response = self.response_text(raw, command)
+        replies = self.reply_lines(response)
+        # Also allow a standalone explicit OK, but never guess success from logs.
+        replies.extend(line.strip() for line in self.lines(response)
+                       if line.strip() == "OK")
+        for reply in replies:
+            if looks_error(reply):
+                return False, reply, raw
+        for reply in replies:
+            if command in ("powersaving on", "powersaving off"):
+                if reply.removeprefix(">").strip() == command.split()[1]:
+                    return True, reply, raw
+            if (re.match(r"^\(?OK(?:$|[\s,:-])", reply)
+                    or reply.lower().startswith("password now:")):
+                return True, reply, raw
+        return False, replies[-1] if replies else "(no confirmation reply)", raw
 
 
 def list_ports() -> int:
@@ -514,14 +563,81 @@ def query_device_meta(cli: SerialCLI) -> dict:
     return meta
 
 
-def backup_from_device(cli: SerialCLI, include_secrets: bool = True) -> dict:
+def snapshot_has_reply(name: str, raw: str) -> bool:
+    if SerialCLI.reply_lines(raw):
+        return True
+    # The room server writes the ACL directly to Serial, without the '->'
+    # wrapper used for scalar replies. The header also covers an empty ACL.
+    return name == "acl" and "ACL:" in [line.strip() for line in raw.splitlines()]
+
+
+def diagnose_radio(cli: SerialCLI, backup_order: bool = False) -> int:
+    # Read radio before and after ADC to distinguish an unsupported getter
+    # from a delayed/misattributed reply. Never send setters or read secrets.
+    failed = False
+    if backup_order:
+        # Reproduce the actual backup prefix, including identity/access reads,
+        # without printing their values or raw transcripts.
+        secrets = []
+        prefix = ["ver", "board", "get role", "get public.key"]
+        for spec in ALL_SPECS:
+            if spec.key == "adc.multiplier":
+                break
+            prefix.append(spec.get_command())
+        for command in prefix:
+            print(f"Vorabfrage: {command} (Wert ausgeblendet)", flush=True)
+            ok, value, _ = cli.get_value(command)
+            if ok and value:
+                secrets.append(value)
+            if not ok:
+                print("Vorabfrage fehlgeschlagen; Diagnose abgebrochen.")
+                return 2
+
+        def trace(command, phase, raw):
+            for value in sorted(secrets, key=len, reverse=True):
+                raw = raw.replace(value, "<ausgeblendet>")
+            print(f"{command} – {phase}: {raw!r}", flush=True)
+
+        previous_trace = cli.trace_callback
+        cli.trace_callback = trace
+        try:
+            for command in ("get adc.multiplier", "get radio", "get freq"):
+                print(f"\nAbfrage: {command}", flush=True)
+                ok, _, _ = cli.get_value(command)
+                print(f"Status: {'OK' if ok else 'FEHLER'}", flush=True)
+                failed |= not ok
+        finally:
+            cli.trace_callback = previous_trace
+        return 2 if failed else 0
+
+    for command in ("get radio", "get adc.multiplier", "get radio", "get freq"):
+        print(f"\nAbfrage: {command}", flush=True)
+        started = time.monotonic()
+        ok, value, raw = cli.get_value(command)
+        elapsed = time.monotonic() - started
+        print(f"Dauer: {elapsed:.2f} s; Status: {'OK' if ok else 'FEHLER'}")
+        print(f"Erkannt: {value!r}")
+        # repr preserves CR/LF boundaries and shows markers/echoes that would
+        # otherwise be hidden by terminal cursor movement.
+        print(f"Empfangen: {raw!r}", flush=True)
+        failed |= not ok
+    return 2 if failed else 0
+
+
+def backup_from_device(cli: SerialCLI, include_secrets: bool = True,
+                       progress: Optional[Callable[[str], None]] = None) -> dict:
+    if progress:
+        progress("Lese Gerätedaten …")
     device = query_device_meta(cli)
     settings = {}
     unsupported = {}
+    read_errors = {}
     raw_snapshots = {}
     warnings = []
 
-    for spec in ALL_SPECS:
+    for index, spec in enumerate(ALL_SPECS, start=1):
+        if progress:
+            progress(f"[{index}/{len(ALL_SPECS)}] {spec.get_command()}")
         ok, value, raw = cli.get_value(spec.get_command())
         if ok:
             if spec.secret and not include_secrets:
@@ -554,7 +670,14 @@ def backup_from_device(cli: SerialCLI, include_secrets: bool = True) -> dict:
                 entry["reported"] = value
             settings[spec.key] = entry
         else:
-            unsupported[spec.key] = value
+            if value == "(no recognizable reply)":
+                read_errors[spec.key] = value
+            else:
+                unsupported[spec.key] = value
+
+    for label, value in device.items():
+        if label.endswith("_error"):
+            read_errors[f"device.{label[:-6]}"] = value
 
     # ACL and region dumps are useful for disaster recovery/reference, but v0.1
     # intentionally does not auto-replay multi-line access/region state.
@@ -565,8 +688,12 @@ def backup_from_device(cli: SerialCLI, include_secrets: bool = True) -> dict:
         ("mqtt_status", "get mqtt.status"),
         ("mqtt_config_valid", "get mqtt.config.valid"),
     ):
-        raw = cli.command(cmd, timeout=2.5)
+        if progress:
+            progress(f"Snapshot: {cmd}")
+        raw = cli.command(cmd)
         raw_snapshots[name] = raw.strip()
+        if not snapshot_has_reply(name, raw):
+            read_errors[f"snapshot.{name}"] = "(no recognizable reply)"
 
     # Admin password is write-only in upstream MeshCore.
     warnings.append(
@@ -585,6 +712,17 @@ def backup_from_device(cli: SerialCLI, include_secrets: bool = True) -> dict:
         warnings.append(
             "Private key could not be read. Do not erase this node if preserving "
             "its MeshCore identity matters."
+        )
+
+    if read_errors:
+        warnings.append(
+            f"INCOMPLETE: {len(read_errors)} queries had no usable reply. "
+            "These are read errors, not confirmed unsupported settings."
+        )
+    if "radio" not in settings:
+        warnings.append(
+            "INCOMPLETE: Radio parameters (frequency, bandwidth, SF, CR) are missing. "
+            "Read them again before relying on this backup for recovery."
         )
 
     # If Gessaman observer keys exist, note it.
@@ -606,17 +744,28 @@ def backup_from_device(cli: SerialCLI, include_secrets: bool = True) -> dict:
         "settings": settings,
         "raw_snapshots": raw_snapshots,
         "unsupported": unsupported,
+        "read_errors": read_errors,
         "warnings": warnings,
     }
 
 
 def write_backup(path: Path, data: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    os.chmod(tmp, stat.S_IRUSR | stat.S_IWUSR)  # 0600
-    tmp.replace(path)
-    os.chmod(path, stat.S_IRUSR | stat.S_IWUSR)
+    # Create with 0600 from the outset: the file already contains secrets while
+    # it is being written. A unique sibling also makes replacement atomic.
+    tmp = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=path.parent,
+            prefix=f".{path.name}.", suffix=".tmp", delete=False,
+        ) as stream:
+            tmp = Path(stream.name)
+            json.dump(data, stream, ensure_ascii=False, indent=2)
+            stream.write("\n")
+        tmp.replace(path)
+    finally:
+        if tmp is not None and tmp.exists():
+            tmp.unlink()
 
 
 def load_backup(path: Path) -> dict:
@@ -753,7 +902,7 @@ def _meaningful_saved_value(settings: dict, key: str) -> str:
     return canonical_value(key, str(entry.get("value", ""))).strip()
 
 
-def select_restore_specs(data: dict, restore_identity: bool) -> list[tuple[SettingSpec, str]]:
+def select_restore_specs(data: dict, restore_identity: bool, target_role: Optional[str] = None) -> list[tuple[SettingSpec, str]]:
     selected = []
     settings = data.get("settings", {})
     has_dutycycle = "dutycycle" in settings and not settings["dutycycle"].get("omitted")
@@ -795,7 +944,54 @@ def select_restore_specs(data: dict, restore_identity: bool) -> list[tuple[Setti
             continue
         selected.append((spec, rv))
 
-    return sorted(selected, key=lambda item: item[0].priority)
+    if target_role == "repeater":
+        selected = [(spec, value) for spec, value in selected if spec.key != "repeat"]
+        selected.append((SPEC_BY_KEY["repeat"], "on"))
+    # Enable forwarding only after the other settings have been applied.
+    return sorted(selected, key=lambda item: 10000 if item[0].key == "repeat" else item[0].priority)
+
+
+def validate_restore(data: dict, restore_identity: bool) -> None:
+    if data.get("read_errors"):
+        raise ValueError("Backup enthält Lesefehler; zuerst ein vollständiges Backup verwenden.")
+    settings = data.get("settings", {})
+    for key in ("name", "radio", "tx", "repeat"):
+        if not _meaningful_saved_value(settings, key) or not settings[key].get("restorable", True):
+            raise ValueError(f"Erforderliche Einstellung fehlt: {key}")
+    if restore_identity:
+        key = _meaningful_saved_value(settings, "prv.key")
+        if not re.fullmatch(r"[0-9a-fA-F]{128}", key) or not settings["prv.key"].get("restorable", True):
+            raise ValueError("Private Identität fehlt oder hat nicht das erwartete 64-Byte-Hexformat.")
+    for key, entry in settings.items():
+        value = entry.get("value")
+        if value is not None and any(ord(c) < 32 or ord(c) == 127 for c in str(value)):
+            raise ValueError(f"Unzulässiges Steuerzeichen im Backup-Wert: {key}")
+
+
+def values_equal(key: str, wanted: str, got: str) -> bool:
+    a, b = normalize_compare(key, wanted), normalize_compare(key, got)
+    if a == b:
+        return True
+    if key in {"lat", "lon", "rxdelay", "txdelay", "direct.txdelay", "dutycycle", "adc.multiplier", "radio"}:
+        try:
+            av, bv = [float(v) for v in a.split(",")], [float(v) for v in b.split(",")]
+            return len(av) == len(bv) and all(
+                math.isclose(x, y, rel_tol=1e-7, abs_tol=1e-6) for x, y in zip(av, bv)
+            )
+        except ValueError:
+            pass
+    return False
+
+
+def print_restore_plan(data: dict, restore_identity: bool, target_role: Optional[str]) -> int:
+    validate_restore(data, restore_identity)
+    selected = select_restore_specs(data, restore_identity, target_role)
+    print(f"Restore-Plan: {data.get('device', {}).get('role', '?')} -> {target_role or 'gleiche Rolle'}")
+    print("Offline-Vorschau; Unterstützung der Ziel-Firmware wird vor dem Schreiben geprüft.")
+    for spec, value in selected:
+        print(f"  {spec.key:28} {redact(spec.key, value)}")
+    print(f"{len(selected)} Einstellungen; ACL, Regions und Admin-Passwort sind nicht Teil dieses Plans.")
+    return 0
 
 
 def confirmation(port: str, data: dict, yes: bool, restore_identity: bool) -> None:
@@ -817,17 +1013,34 @@ def confirmation(port: str, data: dict, yes: bool, restore_identity: bool) -> No
 
 
 def restore_device(cli: SerialCLI, data: dict, yes: bool, restore_identity: bool,
-                   no_reboot: bool, show_secrets: bool) -> int:
-    confirmation(cli.port, data, yes, restore_identity)
-    selected = select_restore_specs(data, restore_identity)
-
-    # Give a conspicuous role warning, but don't block: changing RoomServer ↔
-    # Repeater is a valid use-case because role is a firmware choice.
+                   no_reboot: bool, show_secrets: bool, target_role: Optional[str] = None) -> int:
+    validate_restore(data, restore_identity)
+    selected = select_restore_specs(data, restore_identity, target_role)
     backup_role = (data.get("device") or {}).get("role")
     ok_role, current_role, _ = cli.get_value("get role")
-    if ok_role and backup_role and current_role != backup_role:
-        print(f"! Rollenwechsel: Backup={backup_role}, Gerät={current_role}")
-        print("  'role' ist read-only und wird nicht restauriert.")
+    expected_role = target_role or backup_role
+    if not ok_role or not expected_role or current_role != expected_role:
+        print(f"Abbruch vor dem Schreiben: Zielrolle {expected_role!r}, Gerät {current_role if ok_role else 'nicht lesbar'!r}.")
+        print("Für einen Rollenwechsel --target-role verwenden und zuerst die passende Firmware flashen.")
+        return 2
+
+    print("Prüfe lesend, welche Einstellungen die Ziel-Firmware unterstützt …", flush=True)
+    supported = []
+    required = {"name", "radio", "tx", "repeat"}
+    if restore_identity:
+        required.add("prv.key")
+    for spec, value in selected:
+        ok, reply, _ = cli.get_value(spec.get_command())
+        if ok:
+            supported.append((spec, value))
+        elif spec.key not in required and (reply.startswith("??:") or reply.lower().startswith("error: unsupported")):
+            print(f"  Übersprungen (Ziel-Firmware): {spec.key}")
+        else:
+            print(f"Abbruch vor dem Schreiben: {spec.key} nicht zuverlässig lesbar.")
+            return 2
+    selected = supported
+    print_restore_plan(data, restore_identity, target_role)
+    confirmation(cli.port, data, yes, restore_identity)
 
     failures = []
     pending_reboot_verify = set()
@@ -842,8 +1055,10 @@ def restore_device(cli: SerialCLI, data: dict, yes: bool, restore_identity: bool
             if spec.key in ("prv.key", "radio"):
                 pending_reboot_verify.add(spec.key)
         else:
-            print(f"  ERR {spec.key:28} {reply}")
-            failures.append((spec.key, reply))
+            safe_reply = reply.replace(value, "********") if spec.secret and value else reply
+            print(f"  ERR {spec.key:28} {safe_reply}")
+            failures.append((spec.key, "Schreiben fehlgeschlagen"))
+            break
 
     if failures:
         print("\nRestore unvollständig — KEIN Reboot gesendet.")
@@ -861,9 +1076,10 @@ def restore_device(cli: SerialCLI, data: dict, yes: bool, restore_identity: bool
 
         ok, got, _ = cli.get_value(spec.get_command())
         if not ok:
-            print(f"  ?   {spec.key:28} nicht lesbar: {got}")
+            print(f"  ?   {spec.key:28} nicht lesbar")
+            mismatches.append(spec.key)
             continue
-        if normalize_compare(spec.key, wanted) != normalize_compare(spec.key, got):
+        if not values_equal(spec.key, wanted, got):
             print(
                 f"  !=  {spec.key:28} soll={redact(spec.key, wanted, show_secrets)} "
                 f"ist={redact(spec.key, got, show_secrets)}"
@@ -877,7 +1093,7 @@ def restore_device(cli: SerialCLI, data: dict, yes: bool, restore_identity: bool
         return 3
 
     if no_reboot:
-        print("\nRestore verifiziert. Reboot durch --no-reboot unterdrückt.")
+        print("\nUnmittelbar lesbare Werte verifiziert. Kein Reboot; Identität/Radio nach Neustart prüfen.")
         return 0
 
     print("\nAlle unmittelbar prüfbaren Werte stimmen. Sende reboot …")
@@ -918,6 +1134,12 @@ def build_parser() -> argparse.ArgumentParser:
     pi = sub.add_parser("info", help="Gerät erkennen und wichtige Werte lesen")
     serial_args(pi)
 
+    pdiag = sub.add_parser("diagnose-radio", help="Radio-/ADC-Antworten gezielt untersuchen (nur lesen)")
+    serial_args(pdiag)
+    pdiag.set_defaults(timeout=DEFAULT_TIMEOUT)
+    pdiag.add_argument("--backup-order", action="store_true",
+                       help="Abfragereihenfolge des Backups samt maskierter Ablaufdiagnose nachstellen")
+
     pb = sub.add_parser("backup", help="vollständiges bekanntes Config-Backup lesen")
     serial_args(pb)
     pb.add_argument("-o", "--output", type=Path)
@@ -937,6 +1159,8 @@ def build_parser() -> argparse.ArgumentParser:
     pr = sub.add_parser("restore", help="Backup kontrolliert zurückschreiben")
     serial_args(pr)
     pr.add_argument("backup", type=Path)
+    pr.add_argument("--target-role", choices=("repeater", "room_server"),
+                    help="erwartete Zielrolle; repeater setzt repeat=on")
     pr.add_argument("--identity", action="store_true",
                     help="auch privaten MeshCore-Key restaurieren")
     pr.add_argument("--yes", action="store_true",
@@ -944,6 +1168,11 @@ def build_parser() -> argparse.ArgumentParser:
     pr.add_argument("--no-reboot", action="store_true")
     pr.add_argument("--secrets", action="store_true",
                     help="Secrets während Restore im Terminal anzeigen")
+
+    pp = sub.add_parser("plan", help="Restore-Plan ohne Geräteverbindung anzeigen")
+    pp.add_argument("backup", type=Path)
+    pp.add_argument("--identity", action="store_true")
+    pp.add_argument("--target-role", choices=("repeater", "room_server"))
 
     return p
 
@@ -957,6 +1186,9 @@ def open_cli(args) -> SerialCLI:
 def main(argv: Optional[list[str]] = None) -> int:
     args = build_parser().parse_args(argv)
 
+    if args.command == "plan":
+        return print_restore_plan(load_backup(args.backup), args.identity, args.target_role)
+
     if args.command == "ports":
         return list_ports()
 
@@ -968,10 +1200,20 @@ def main(argv: Optional[list[str]] = None) -> int:
         with open_cli(args) as cli:
             return print_info(cli)
 
-    if args.command == "backup":
+    if args.command == "diagnose-radio":
+        if args.backup_order:
+            # Raw verbose logging would bypass masking of prefix secrets.
+            args.verbose = False
         with open_cli(args) as cli:
-            print(f"Lese {args.port} …")
-            data = backup_from_device(cli, include_secrets=not args.exclude_secrets)
+            return diagnose_radio(cli, backup_order=args.backup_order)
+
+    if args.command == "backup":
+        print(f"Verbinde mit {args.port} …", flush=True)
+        with open_cli(args) as cli:
+            data = backup_from_device(
+                cli, include_secrets=not args.exclude_secrets,
+                progress=lambda message: print(message, file=sys.stderr, flush=True),
+            )
 
         out = args.output or Path(backup_default_name(data.get("device", {})))
         write_backup(out, data)
@@ -980,12 +1222,17 @@ def main(argv: Optional[list[str]] = None) -> int:
         print(f"  {total} Einstellungen")
         print(f"  {secrets} Secret(s) lokal per Serial gesichert")
         print(f"  {unsupported} Probe(s) von dieser Firmware nicht unterstützt")
+        print(f"  {len(data.get('read_errors', {}))} Lesefehler")
+        if data.get("read_errors"):
+            print("  Lesefehler bei: " + ", ".join(data["read_errors"]))
+        if data.get("unsupported"):
+            print("  Zurückgewiesene Abfragen: " + ", ".join(data["unsupported"]))
         print("  Dateirechte: 0600")
         if data.get("warnings"):
             print("\nHinweise:")
             for w in data["warnings"]:
                 print(f"  ! {w}")
-        return 0
+        return 2 if data.get("read_errors") or "radio" not in data["settings"] else 0
 
     if args.command == "diff":
         data = load_backup(args.backup)
@@ -1001,10 +1248,15 @@ def main(argv: Optional[list[str]] = None) -> int:
                 restore_identity=args.identity,
                 no_reboot=args.no_reboot,
                 show_secrets=args.secrets,
+                target_role=args.target_role,
             )
 
     return 2
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except (DeviceRestartError, SerialSyncError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        raise SystemExit(2)

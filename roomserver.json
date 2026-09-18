@@ -1,0 +1,975 @@
+{
+  "format": "meshcore-config-backup",
+  "format_version": 1,
+  "tool_version": "0.1.0",
+  "created_at": "2026-09-18T13:35:11+02:00",
+  "profile": "gessaman-observer",
+  "transport": {
+    "type": "serial",
+    "port": "/dev/ttyUSB0",
+    "baud": 115200
+  },
+  "device": {
+    "firmware": "v1.17.1.14-observer-beta-dev-4d9ad87 (Build: 7 Sep 2026)",
+    "board": "Heltec V3",
+    "role": "room_server",
+    "public_key": "B978CFA326CE1E35731A329EFF034152EB30F95EFC4B8B3C2FD4CF9D9D57112E"
+  },
+  "settings": {
+    "name": {
+      "value": "WF Ost Observer",
+      "group": "identity",
+      "secret": false,
+      "restorable": true,
+      "getter": "get name",
+      "note": ""
+    },
+    "lat": {
+      "value": "52.1681785",
+      "group": "location",
+      "secret": false,
+      "restorable": true,
+      "getter": "get lat",
+      "note": ""
+    },
+    "lon": {
+      "value": "10.5561399",
+      "group": "location",
+      "secret": false,
+      "restorable": true,
+      "getter": "get lon",
+      "note": ""
+    },
+    "prv.key": {
+      "value": "C80C7EFF558E879A8968CF6D0A927F1EC52C1583109CC1E6218A39B58F8B1C76D2BD916928EBF040201A0E6914F58F0704C23548CE7120D02976F5A0C58C5B57",
+      "group": "identity",
+      "secret": true,
+      "restorable": true,
+      "getter": "get prv.key",
+      "note": "Serial-only getter; setting requires reboot"
+    },
+    "guest.password": {
+      "value": "hello",
+      "group": "access",
+      "secret": true,
+      "restorable": true,
+      "getter": "get guest.password",
+      "note": ""
+    },
+    "owner.info": {
+      "value": "meshcore@wfmail.me",
+      "group": "identity",
+      "secret": false,
+      "restorable": true,
+      "getter": "get owner.info",
+      "note": ""
+    },
+    "radio": {
+      "value": "869.6179809,62.5,8,8",
+      "group": "radio",
+      "secret": false,
+      "restorable": true,
+      "getter": "get radio",
+      "note": "freq,bw,sf,cr; requires reboot"
+    },
+    "tx": {
+      "value": "22",
+      "group": "radio",
+      "secret": false,
+      "restorable": true,
+      "getter": "get tx",
+      "note": ""
+    },
+    "radio.rxgain": {
+      "value": "on",
+      "group": "radio",
+      "secret": false,
+      "restorable": true,
+      "getter": "get radio.rxgain",
+      "note": ""
+    },
+    "powersaving": {
+      "value": "off",
+      "group": "power",
+      "secret": false,
+      "restorable": true,
+      "getter": "powersaving",
+      "note": ""
+    },
+    "repeat": {
+      "value": "off",
+      "group": "routing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get repeat",
+      "note": ""
+    },
+    "path.hash.mode": {
+      "value": "2",
+      "group": "routing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get path.hash.mode",
+      "note": ""
+    },
+    "loop.detect": {
+      "value": "minimal",
+      "group": "routing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get loop.detect",
+      "note": ""
+    },
+    "rxdelay": {
+      "value": "0.0",
+      "group": "timing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get rxdelay",
+      "note": ""
+    },
+    "txdelay": {
+      "value": "0.6",
+      "group": "timing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get txdelay",
+      "note": ""
+    },
+    "direct.txdelay": {
+      "value": "0.3999999",
+      "group": "timing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get direct.txdelay",
+      "note": ""
+    },
+    "dutycycle": {
+      "value": "10.0",
+      "group": "routing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get dutycycle",
+      "note": "Preferred over deprecated af on firmware >=1.15",
+      "reported": "10.0%"
+    },
+    "af": {
+      "value": "9.0",
+      "group": "routing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get af",
+      "note": "Deprecated upstream; fallback for older firmware"
+    },
+    "int.thresh": {
+      "value": "0",
+      "group": "routing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get int.thresh",
+      "note": ""
+    },
+    "cad": {
+      "value": "off",
+      "group": "routing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get cad",
+      "note": ""
+    },
+    "agc.reset.interval": {
+      "value": "0",
+      "group": "routing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get agc.reset.interval",
+      "note": ""
+    },
+    "multi.acks": {
+      "value": "1",
+      "group": "routing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get multi.acks",
+      "note": ""
+    },
+    "advert.interval": {
+      "value": "0",
+      "group": "advertising",
+      "secret": false,
+      "restorable": true,
+      "getter": "get advert.interval",
+      "note": ""
+    },
+    "flood.advert.interval": {
+      "value": "0",
+      "group": "advertising",
+      "secret": false,
+      "restorable": true,
+      "getter": "get flood.advert.interval",
+      "note": ""
+    },
+    "flood.max": {
+      "value": "21",
+      "group": "routing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get flood.max",
+      "note": ""
+    },
+    "flood.max.unscoped": {
+      "value": "2",
+      "group": "routing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get flood.max.unscoped",
+      "note": ""
+    },
+    "flood.max.advert": {
+      "value": "2",
+      "group": "routing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get flood.max.advert",
+      "note": ""
+    },
+    "allow.read.only": {
+      "value": "off",
+      "group": "access",
+      "secret": false,
+      "restorable": true,
+      "getter": "get allow.read.only",
+      "note": ""
+    },
+    "bridge.enabled": {
+      "value": "on",
+      "group": "bridge",
+      "secret": false,
+      "restorable": true,
+      "getter": "get bridge.enabled",
+      "note": ""
+    },
+    "bridge.delay": {
+      "value": "500",
+      "group": "bridge",
+      "secret": false,
+      "restorable": true,
+      "getter": "get bridge.delay",
+      "note": ""
+    },
+    "bridge.source": {
+      "value": "logRx",
+      "group": "bridge",
+      "secret": false,
+      "restorable": true,
+      "getter": "get bridge.source",
+      "note": ""
+    },
+    "wifi.ssid": {
+      "value": "MESH",
+      "group": "wifi",
+      "secret": false,
+      "restorable": true,
+      "getter": "get wifi.ssid",
+      "note": ""
+    },
+    "wifi.pwd": {
+      "value": "12345678",
+      "group": "wifi",
+      "secret": true,
+      "restorable": true,
+      "getter": "get wifi.pwd",
+      "note": ""
+    },
+    "wifi.powersave": {
+      "value": "none",
+      "group": "wifi",
+      "secret": false,
+      "restorable": true,
+      "getter": "get wifi.powersave",
+      "note": ""
+    },
+    "mqtt.origin": {
+      "value": "WF Ost Observer",
+      "group": "mqtt",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt.origin",
+      "note": ""
+    },
+    "mqtt.iata": {
+      "value": "BWE",
+      "group": "mqtt",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt.iata",
+      "note": ""
+    },
+    "mqtt.owner": {
+      "value": "",
+      "group": "mqtt",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt.owner",
+      "note": "",
+      "reported": "(not set)"
+    },
+    "mqtt.email": {
+      "value": "",
+      "group": "mqtt",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt.email",
+      "note": "",
+      "reported": "(not set)"
+    },
+    "mqtt.status": {
+      "value": "on",
+      "group": "mqtt",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt.status",
+      "note": "",
+      "reported": "msgs: on, 1: bsmesh (ok), 2: custom (ok), q:0"
+    },
+    "mqtt.packets": {
+      "value": "on",
+      "group": "mqtt",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt.packets",
+      "note": ""
+    },
+    "mqtt.raw": {
+      "value": "off",
+      "group": "mqtt",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt.raw",
+      "note": ""
+    },
+    "mqtt.rx": {
+      "value": "on",
+      "group": "mqtt",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt.rx",
+      "note": ""
+    },
+    "mqtt.tx": {
+      "value": "advert",
+      "group": "mqtt",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt.tx",
+      "note": ""
+    },
+    "mqtt.interval": {
+      "value": "5",
+      "group": "mqtt",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt.interval",
+      "note": "",
+      "reported": "5 minutes (300000 ms)"
+    },
+    "mqtt.neighbors": {
+      "value": "off",
+      "group": "mqtt",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt.neighbors",
+      "note": ""
+    },
+    "mqtt.neighbors.interval": {
+      "value": "24",
+      "group": "mqtt",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt.neighbors.interval",
+      "note": "",
+      "reported": "24 hours (86400000 ms)"
+    },
+    "mqtt.ntp": {
+      "value": "pool.ntp.org",
+      "group": "time",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt.ntp",
+      "note": "Getter returns the effective NTP primary; a default may become explicit on restore"
+    },
+    "timezone": {
+      "value": "Europe/Berlin",
+      "group": "time",
+      "secret": false,
+      "restorable": true,
+      "getter": "get timezone",
+      "note": ""
+    },
+    "timezone.offset": {
+      "value": "0",
+      "group": "time",
+      "secret": false,
+      "restorable": true,
+      "getter": "get timezone.offset",
+      "note": ""
+    },
+    "snmp": {
+      "value": "off",
+      "group": "snmp",
+      "secret": false,
+      "restorable": true,
+      "getter": "get snmp",
+      "note": ""
+    },
+    "snmp.community": {
+      "value": "public",
+      "group": "snmp",
+      "secret": true,
+      "restorable": true,
+      "getter": "get snmp.community",
+      "note": ""
+    },
+    "radio.watchdog": {
+      "value": "5",
+      "group": "radio",
+      "secret": false,
+      "restorable": true,
+      "getter": "get radio.watchdog",
+      "note": ""
+    },
+    "alert": {
+      "value": "off",
+      "group": "alerts",
+      "secret": false,
+      "restorable": true,
+      "getter": "get alert",
+      "note": ""
+    },
+    "alert.psk": {
+      "value": "",
+      "group": "alerts",
+      "secret": true,
+      "restorable": true,
+      "getter": "get alert.psk",
+      "note": "",
+      "reported": "(unset)"
+    },
+    "alert.hashtag": {
+      "value": "",
+      "group": "alerts",
+      "secret": false,
+      "restorable": true,
+      "getter": "get alert.hashtag",
+      "note": "",
+      "reported": "(unset)"
+    },
+    "alert.region": {
+      "value": "",
+      "group": "alerts",
+      "secret": false,
+      "restorable": true,
+      "getter": "get alert.region",
+      "note": "",
+      "reported": "(unset, using default scope)"
+    },
+    "alert.wifi": {
+      "value": "30",
+      "group": "alerts",
+      "secret": false,
+      "restorable": true,
+      "getter": "get alert.wifi",
+      "note": "",
+      "reported": "30 min"
+    },
+    "alert.mqtt": {
+      "value": "240",
+      "group": "alerts",
+      "secret": false,
+      "restorable": true,
+      "getter": "get alert.mqtt",
+      "note": "",
+      "reported": "240 min"
+    },
+    "alert.interval": {
+      "value": "60",
+      "group": "alerts",
+      "secret": false,
+      "restorable": true,
+      "getter": "get alert.interval",
+      "note": "",
+      "reported": "60 min"
+    },
+    "mqtt1.preset": {
+      "value": "bsmesh",
+      "group": "mqtt1",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt1.preset",
+      "note": ""
+    },
+    "mqtt1.server": {
+      "value": "",
+      "group": "mqtt1",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt1.server",
+      "note": ""
+    },
+    "mqtt1.port": {
+      "value": "0",
+      "group": "mqtt1",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt1.port",
+      "note": ""
+    },
+    "mqtt1.username": {
+      "value": "",
+      "group": "mqtt1",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt1.username",
+      "note": ""
+    },
+    "mqtt1.password": {
+      "value": "",
+      "group": "mqtt1",
+      "secret": true,
+      "restorable": true,
+      "getter": "get mqtt1.password",
+      "note": ""
+    },
+    "mqtt1.token": {
+      "value": "",
+      "group": "mqtt1",
+      "secret": true,
+      "restorable": true,
+      "getter": "get mqtt1.token",
+      "note": "",
+      "reported": "(not set)"
+    },
+    "mqtt1.topic": {
+      "value": "",
+      "group": "mqtt1",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt1.topic",
+      "note": "",
+      "reported": "(default: meshcore/{iata}/{device}/{type})"
+    },
+    "mqtt1.audience": {
+      "value": "",
+      "group": "mqtt1",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt1.audience",
+      "note": "",
+      "reported": "(not set - custom slots use username/password auth)"
+    },
+    "mqtt1.filter": {
+      "value": "all",
+      "group": "mqtt1",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt1.filter",
+      "note": ""
+    },
+    "mqtt2.preset": {
+      "value": "custom",
+      "group": "mqtt2",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt2.preset",
+      "note": ""
+    },
+    "mqtt2.server": {
+      "value": "mqtt://192.168.88.40:1883",
+      "group": "mqtt2",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt2.server",
+      "note": ""
+    },
+    "mqtt2.port": {
+      "value": "0",
+      "group": "mqtt2",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt2.port",
+      "note": ""
+    },
+    "mqtt2.username": {
+      "value": "",
+      "group": "mqtt2",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt2.username",
+      "note": ""
+    },
+    "mqtt2.password": {
+      "value": "",
+      "group": "mqtt2",
+      "secret": true,
+      "restorable": true,
+      "getter": "get mqtt2.password",
+      "note": ""
+    },
+    "mqtt2.token": {
+      "value": "",
+      "group": "mqtt2",
+      "secret": true,
+      "restorable": true,
+      "getter": "get mqtt2.token",
+      "note": "",
+      "reported": "(not set)"
+    },
+    "mqtt2.topic": {
+      "value": "",
+      "group": "mqtt2",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt2.topic",
+      "note": "",
+      "reported": "(default: meshcore/{iata}/{device}/{type})"
+    },
+    "mqtt2.audience": {
+      "value": "",
+      "group": "mqtt2",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt2.audience",
+      "note": "",
+      "reported": "(not set - custom slots use username/password auth)"
+    },
+    "mqtt2.filter": {
+      "value": "all",
+      "group": "mqtt2",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt2.filter",
+      "note": ""
+    },
+    "mqtt3.preset": {
+      "value": "none",
+      "group": "mqtt3",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt3.preset",
+      "note": ""
+    },
+    "mqtt3.server": {
+      "value": "",
+      "group": "mqtt3",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt3.server",
+      "note": ""
+    },
+    "mqtt3.port": {
+      "value": "0",
+      "group": "mqtt3",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt3.port",
+      "note": ""
+    },
+    "mqtt3.username": {
+      "value": "",
+      "group": "mqtt3",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt3.username",
+      "note": ""
+    },
+    "mqtt3.password": {
+      "value": "",
+      "group": "mqtt3",
+      "secret": true,
+      "restorable": true,
+      "getter": "get mqtt3.password",
+      "note": ""
+    },
+    "mqtt3.token": {
+      "value": "",
+      "group": "mqtt3",
+      "secret": true,
+      "restorable": true,
+      "getter": "get mqtt3.token",
+      "note": "",
+      "reported": "(not set)"
+    },
+    "mqtt3.topic": {
+      "value": "",
+      "group": "mqtt3",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt3.topic",
+      "note": "",
+      "reported": "(default: meshcore/{iata}/{device}/{type})"
+    },
+    "mqtt3.audience": {
+      "value": "",
+      "group": "mqtt3",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt3.audience",
+      "note": "",
+      "reported": "(not set - custom slots use username/password auth)"
+    },
+    "mqtt3.filter": {
+      "value": "all",
+      "group": "mqtt3",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt3.filter",
+      "note": ""
+    },
+    "mqtt4.preset": {
+      "value": "none",
+      "group": "mqtt4",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt4.preset",
+      "note": ""
+    },
+    "mqtt4.server": {
+      "value": "",
+      "group": "mqtt4",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt4.server",
+      "note": ""
+    },
+    "mqtt4.port": {
+      "value": "0",
+      "group": "mqtt4",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt4.port",
+      "note": ""
+    },
+    "mqtt4.username": {
+      "value": "",
+      "group": "mqtt4",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt4.username",
+      "note": ""
+    },
+    "mqtt4.password": {
+      "value": "",
+      "group": "mqtt4",
+      "secret": true,
+      "restorable": true,
+      "getter": "get mqtt4.password",
+      "note": ""
+    },
+    "mqtt4.token": {
+      "value": "",
+      "group": "mqtt4",
+      "secret": true,
+      "restorable": true,
+      "getter": "get mqtt4.token",
+      "note": "",
+      "reported": "(not set)"
+    },
+    "mqtt4.topic": {
+      "value": "",
+      "group": "mqtt4",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt4.topic",
+      "note": "",
+      "reported": "(default: meshcore/{iata}/{device}/{type})"
+    },
+    "mqtt4.audience": {
+      "value": "",
+      "group": "mqtt4",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt4.audience",
+      "note": "",
+      "reported": "(not set - custom slots use username/password auth)"
+    },
+    "mqtt4.filter": {
+      "value": "all",
+      "group": "mqtt4",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt4.filter",
+      "note": ""
+    },
+    "mqtt5.preset": {
+      "value": "none",
+      "group": "mqtt5",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt5.preset",
+      "note": ""
+    },
+    "mqtt5.server": {
+      "value": "",
+      "group": "mqtt5",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt5.server",
+      "note": ""
+    },
+    "mqtt5.port": {
+      "value": "0",
+      "group": "mqtt5",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt5.port",
+      "note": ""
+    },
+    "mqtt5.username": {
+      "value": "",
+      "group": "mqtt5",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt5.username",
+      "note": ""
+    },
+    "mqtt5.password": {
+      "value": "",
+      "group": "mqtt5",
+      "secret": true,
+      "restorable": true,
+      "getter": "get mqtt5.password",
+      "note": ""
+    },
+    "mqtt5.token": {
+      "value": "",
+      "group": "mqtt5",
+      "secret": true,
+      "restorable": true,
+      "getter": "get mqtt5.token",
+      "note": "",
+      "reported": "(not set)"
+    },
+    "mqtt5.topic": {
+      "value": "",
+      "group": "mqtt5",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt5.topic",
+      "note": "",
+      "reported": "(default: meshcore/{iata}/{device}/{type})"
+    },
+    "mqtt5.audience": {
+      "value": "",
+      "group": "mqtt5",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt5.audience",
+      "note": "",
+      "reported": "(not set - custom slots use username/password auth)"
+    },
+    "mqtt5.filter": {
+      "value": "all",
+      "group": "mqtt5",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt5.filter",
+      "note": ""
+    },
+    "mqtt6.preset": {
+      "value": "none",
+      "group": "mqtt6",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt6.preset",
+      "note": ""
+    },
+    "mqtt6.server": {
+      "value": "",
+      "group": "mqtt6",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt6.server",
+      "note": ""
+    },
+    "mqtt6.port": {
+      "value": "0",
+      "group": "mqtt6",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt6.port",
+      "note": ""
+    },
+    "mqtt6.username": {
+      "value": "",
+      "group": "mqtt6",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt6.username",
+      "note": ""
+    },
+    "mqtt6.password": {
+      "value": "",
+      "group": "mqtt6",
+      "secret": true,
+      "restorable": true,
+      "getter": "get mqtt6.password",
+      "note": ""
+    },
+    "mqtt6.token": {
+      "value": "",
+      "group": "mqtt6",
+      "secret": true,
+      "restorable": true,
+      "getter": "get mqtt6.token",
+      "note": "",
+      "reported": "(not set)"
+    },
+    "mqtt6.topic": {
+      "value": "",
+      "group": "mqtt6",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt6.topic",
+      "note": "",
+      "reported": "(default: meshcore/{iata}/{device}/{type})"
+    },
+    "mqtt6.audience": {
+      "value": "",
+      "group": "mqtt6",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt6.audience",
+      "note": "",
+      "reported": "(not set - custom slots use username/password auth)"
+    },
+    "mqtt6.filter": {
+      "value": "all",
+      "group": "mqtt6",
+      "secret": false,
+      "restorable": true,
+      "getter": "get mqtt6.filter",
+      "note": ""
+    }
+  },
+  "raw_snapshots": {
+    "acl": "get acl\rACL:\r\n03 C0CADC7B74655F2BB7EEAF0E2CD5370A0E0457864ECB874BC049C727029DC494\n03 390061A3EF149D9367DD9202EC6DDEF92755BF818B8871A150D84FF6017D04B4",
+    "regions": "region\r  -> * F\n bsmesh^ F",
+    "mqtt_presets": "get mqtt.presets\r  -> analyzer-us,analyzer-eu,nz-analyzer,meshmapper,meshrank,waev,meshomatic,cascadiamesh,tennmesh,nashmesh,ctmesh,chimesh,meshat.se,eastidahomesh... next:14",
+    "mqtt_status": "get mqtt.status\r  -> > msgs: on, 1: bsmesh (ok), 2: custom (ok), q:0",
+    "mqtt_config_valid": "get mqtt.config.valid\r  -> > valid"
+  },
+  "unsupported": {
+    "adc.multiplier": "Error: unsupported",
+    "radio.fem.rxgain": "??: radio.fem.rxgain",
+    "radio.fem.txgain": "??: radio.fem.txgain",
+    "bridge.baud": "??: bridge.baud",
+    "bridge.channel": "??: bridge.channel",
+    "bridge.secret": "??: bridge.secret"
+  },
+  "read_errors": {},
+  "warnings": [
+    "Admin password is write-only in upstream MeshCore and cannot be backed up by this tool. Record/change it separately if needed.",
+    "ACL and region dumps are saved as raw snapshots, but v0.1 does not automatically restore them.",
+    "Gessaman get mqtt.origin and get mqtt.ntp return effective values. If the stored override was empty, restore may make that effective default explicit."
+  ]
+}
