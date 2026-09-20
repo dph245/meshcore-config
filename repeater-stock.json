@@ -1,0 +1,358 @@
+{
+  "format": "meshcore-config-backup",
+  "format_version": 1,
+  "tool_version": "0.1.0",
+  "created_at": "2026-09-20T10:46:52+02:00",
+  "profile": "meshcore",
+  "transport": {
+    "type": "serial",
+    "port": "/dev/ttyUSB0",
+    "baud": 115200
+  },
+  "device": {
+    "firmware": "v1.17.1-d929643 (Build: 14-Aug-2026)",
+    "board": "Heltec V3",
+    "role": "repeater",
+    "public_key": "777300344CD2D175EB344C0D2DA21E3A420D02F04E1F6DDA9168F2D1FB63C057"
+  },
+  "settings": {
+    "name": {
+      "value": "DE-NI-WF-Rodeland",
+      "group": "identity",
+      "secret": false,
+      "restorable": true,
+      "getter": "get name",
+      "note": ""
+    },
+    "lat": {
+      "value": "52.1670684",
+      "group": "location",
+      "secret": false,
+      "restorable": true,
+      "getter": "get lat",
+      "note": ""
+    },
+    "lon": {
+      "value": "10.5543804",
+      "group": "location",
+      "secret": false,
+      "restorable": true,
+      "getter": "get lon",
+      "note": ""
+    },
+    "prv.key": {
+      "value": "88F4F7903533CD87148D215DE9E8ADFFAA615516783978BBEBF265CB24F7CA447F5985DB426ADCEA2CF20705673183CA0AB235374C32FF78FF5F0947C4B3CE49",
+      "group": "identity",
+      "secret": true,
+      "restorable": true,
+      "getter": "get prv.key",
+      "note": "Serial-only getter; setting requires reboot"
+    },
+    "guest.password": {
+      "value": "",
+      "group": "access",
+      "secret": true,
+      "restorable": true,
+      "getter": "get guest.password",
+      "note": ""
+    },
+    "owner.info": {
+      "value": "meshcore@wfmail.me",
+      "group": "identity",
+      "secret": false,
+      "restorable": true,
+      "getter": "get owner.info",
+      "note": ""
+    },
+    "radio": {
+      "value": "869.6179809,62.5,8,8",
+      "group": "radio",
+      "secret": false,
+      "restorable": true,
+      "getter": "get radio",
+      "note": "freq,bw,sf,cr; requires reboot"
+    },
+    "tx": {
+      "value": "22",
+      "group": "radio",
+      "secret": false,
+      "restorable": true,
+      "getter": "get tx",
+      "note": ""
+    },
+    "radio.rxgain": {
+      "value": "on",
+      "group": "radio",
+      "secret": false,
+      "restorable": true,
+      "getter": "get radio.rxgain",
+      "note": ""
+    },
+    "powersaving": {
+      "value": "off",
+      "group": "power",
+      "secret": false,
+      "restorable": true,
+      "getter": "powersaving",
+      "note": ""
+    },
+    "repeat": {
+      "value": "on",
+      "group": "routing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get repeat",
+      "note": ""
+    },
+    "path.hash.mode": {
+      "value": "2",
+      "group": "routing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get path.hash.mode",
+      "note": ""
+    },
+    "loop.detect": {
+      "value": "minimal",
+      "group": "routing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get loop.detect",
+      "note": ""
+    },
+    "rxdelay": {
+      "value": "0.0",
+      "group": "timing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get rxdelay",
+      "note": ""
+    },
+    "txdelay": {
+      "value": "0.5",
+      "group": "timing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get txdelay",
+      "note": ""
+    },
+    "direct.txdelay": {
+      "value": "0.3",
+      "group": "timing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get direct.txdelay",
+      "note": ""
+    },
+    "dutycycle": {
+      "value": "10.0",
+      "group": "routing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get dutycycle",
+      "note": "Preferred over deprecated af on firmware >=1.15",
+      "reported": "10.0%"
+    },
+    "af": {
+      "value": "9.0",
+      "group": "routing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get af",
+      "note": "Deprecated upstream; fallback for older firmware"
+    },
+    "int.thresh": {
+      "value": "0",
+      "group": "routing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get int.thresh",
+      "note": ""
+    },
+    "cad": {
+      "value": "off",
+      "group": "routing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get cad",
+      "note": ""
+    },
+    "agc.reset.interval": {
+      "value": "0",
+      "group": "routing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get agc.reset.interval",
+      "note": ""
+    },
+    "multi.acks": {
+      "value": "1",
+      "group": "routing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get multi.acks",
+      "note": ""
+    },
+    "advert.interval": {
+      "value": "60",
+      "group": "advertising",
+      "secret": false,
+      "restorable": true,
+      "getter": "get advert.interval",
+      "note": ""
+    },
+    "flood.advert.interval": {
+      "value": "47",
+      "group": "advertising",
+      "secret": false,
+      "restorable": true,
+      "getter": "get flood.advert.interval",
+      "note": ""
+    },
+    "flood.max": {
+      "value": "21",
+      "group": "routing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get flood.max",
+      "note": ""
+    },
+    "flood.max.unscoped": {
+      "value": "5",
+      "group": "routing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get flood.max.unscoped",
+      "note": ""
+    },
+    "flood.max.advert": {
+      "value": "5",
+      "group": "routing",
+      "secret": false,
+      "restorable": true,
+      "getter": "get flood.max.advert",
+      "note": ""
+    },
+    "allow.read.only": {
+      "value": "off",
+      "group": "access",
+      "secret": false,
+      "restorable": true,
+      "getter": "get allow.read.only",
+      "note": ""
+    },
+    "radio.watchdog": {
+      "value": "869.6179809,62.5,8,8",
+      "group": "radio",
+      "secret": false,
+      "restorable": true,
+      "getter": "get radio.watchdog",
+      "note": ""
+    }
+  },
+  "raw_snapshots": {
+    "acl": "get acl\r\nACL:\r\n03 C0CADC7B74655F2BB7EEAF0E2CD5370A0E0457864ECB874BC049C727029DC494",
+    "regions": "region\r\n  -> *^ F\n bsmesh F\n de-ni F\n de-nord F\n de-mitte F\n de-harz F\n de-ni-wf F",
+    "mqtt_presets": "get mqtt.presets\r\n  -> ??: mqtt.presets",
+    "mqtt_status": "get mqtt.status\r\n  -> ??: mqtt.status",
+    "mqtt_config_valid": "get mqtt.config.valid\r\n  -> ??: mqtt.config.valid"
+  },
+  "unsupported": {
+    "adc.multiplier": "Error: unsupported",
+    "radio.fem.rxgain": "Error: unsupported",
+    "radio.fem.txgain": "Error: unsupported",
+    "bridge.enabled": "??: bridge.enabled",
+    "bridge.delay": "??: bridge.delay",
+    "bridge.source": "??: bridge.source",
+    "bridge.baud": "??: bridge.baud",
+    "bridge.channel": "??: bridge.channel",
+    "bridge.secret": "??: bridge.secret",
+    "wifi.ssid": "??: wifi.ssid",
+    "wifi.pwd": "??: wifi.pwd",
+    "wifi.powersave": "??: wifi.powersave",
+    "mqtt.origin": "??: mqtt.origin",
+    "mqtt.iata": "??: mqtt.iata",
+    "mqtt.owner": "??: mqtt.owner",
+    "mqtt.email": "??: mqtt.email",
+    "mqtt.status": "??: mqtt.status",
+    "mqtt.packets": "??: mqtt.packets",
+    "mqtt.raw": "??: mqtt.raw",
+    "mqtt.rx": "??: mqtt.rx",
+    "mqtt.tx": "??: mqtt.tx",
+    "mqtt.interval": "??: mqtt.interval",
+    "mqtt.neighbors": "??: mqtt.neighbors",
+    "mqtt.neighbors.interval": "??: mqtt.neighbors.interval",
+    "mqtt.ntp": "??: mqtt.ntp",
+    "timezone": "??: timezone",
+    "timezone.offset": "??: timezone.offset",
+    "snmp": "??: snmp",
+    "snmp.community": "??: snmp.community",
+    "alert": "??: alert",
+    "alert.psk": "??: alert.psk",
+    "alert.hashtag": "??: alert.hashtag",
+    "alert.region": "??: alert.region",
+    "alert.wifi": "??: alert.wifi",
+    "alert.mqtt": "??: alert.mqtt",
+    "alert.interval": "??: alert.interval",
+    "mqtt1.preset": "??: mqtt1.preset",
+    "mqtt1.server": "??: mqtt1.server",
+    "mqtt1.port": "??: mqtt1.port",
+    "mqtt1.username": "??: mqtt1.username",
+    "mqtt1.password": "??: mqtt1.password",
+    "mqtt1.token": "??: mqtt1.token",
+    "mqtt1.topic": "??: mqtt1.topic",
+    "mqtt1.audience": "??: mqtt1.audience",
+    "mqtt1.filter": "??: mqtt1.filter",
+    "mqtt2.preset": "??: mqtt2.preset",
+    "mqtt2.server": "??: mqtt2.server",
+    "mqtt2.port": "??: mqtt2.port",
+    "mqtt2.username": "??: mqtt2.username",
+    "mqtt2.password": "??: mqtt2.password",
+    "mqtt2.token": "??: mqtt2.token",
+    "mqtt2.topic": "??: mqtt2.topic",
+    "mqtt2.audience": "??: mqtt2.audience",
+    "mqtt2.filter": "??: mqtt2.filter",
+    "mqtt3.preset": "??: mqtt3.preset",
+    "mqtt3.server": "??: mqtt3.server",
+    "mqtt3.port": "??: mqtt3.port",
+    "mqtt3.username": "??: mqtt3.username",
+    "mqtt3.password": "??: mqtt3.password",
+    "mqtt3.token": "??: mqtt3.token",
+    "mqtt3.topic": "??: mqtt3.topic",
+    "mqtt3.audience": "??: mqtt3.audience",
+    "mqtt3.filter": "??: mqtt3.filter",
+    "mqtt4.preset": "??: mqtt4.preset",
+    "mqtt4.server": "??: mqtt4.server",
+    "mqtt4.port": "??: mqtt4.port",
+    "mqtt4.username": "??: mqtt4.username",
+    "mqtt4.password": "??: mqtt4.password",
+    "mqtt4.token": "??: mqtt4.token",
+    "mqtt4.topic": "??: mqtt4.topic",
+    "mqtt4.audience": "??: mqtt4.audience",
+    "mqtt4.filter": "??: mqtt4.filter",
+    "mqtt5.preset": "??: mqtt5.preset",
+    "mqtt5.server": "??: mqtt5.server",
+    "mqtt5.port": "??: mqtt5.port",
+    "mqtt5.username": "??: mqtt5.username",
+    "mqtt5.password": "??: mqtt5.password",
+    "mqtt5.token": "??: mqtt5.token",
+    "mqtt5.topic": "??: mqtt5.topic",
+    "mqtt5.audience": "??: mqtt5.audience",
+    "mqtt5.filter": "??: mqtt5.filter",
+    "mqtt6.preset": "??: mqtt6.preset",
+    "mqtt6.server": "??: mqtt6.server",
+    "mqtt6.port": "??: mqtt6.port",
+    "mqtt6.username": "??: mqtt6.username",
+    "mqtt6.password": "??: mqtt6.password",
+    "mqtt6.token": "??: mqtt6.token",
+    "mqtt6.topic": "??: mqtt6.topic",
+    "mqtt6.audience": "??: mqtt6.audience",
+    "mqtt6.filter": "??: mqtt6.filter"
+  },
+  "read_errors": {},
+  "warnings": [
+    "Admin password is write-only in upstream MeshCore and cannot be backed up by this tool. Record/change it separately if needed.",
+    "ACL and region dumps are saved as raw snapshots, but v0.1 does not automatically restore them.",
+    "Gessaman get mqtt.origin and get mqtt.ntp return effective values. If the stored override was empty, restore may make that effective default explicit."
+  ]
+}
