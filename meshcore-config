@@ -1029,9 +1029,13 @@ def restore_device(cli: SerialCLI, data: dict, yes: bool, restore_identity: bool
     required = {"name", "radio", "tx", "repeat"}
     if restore_identity:
         required.add("prv.key")
-    for spec, value in selected:
+    for index, (spec, value) in enumerate(selected, start=1):
+        print(f"  [{index}/{len(selected)}] {spec.get_command()} …", flush=True)
+        started = time.monotonic()
         ok, reply, _ = cli.get_value(spec.get_command())
+        elapsed = time.monotonic() - started
         if ok:
+            print(f"    OK ({elapsed:.1f} s)", flush=True)
             supported.append((spec, value))
         elif spec.key not in required and (reply.startswith("??:") or reply.lower().startswith("error: unsupported")):
             print(f"  Übersprungen (Ziel-Firmware): {spec.key}")
